@@ -31,8 +31,8 @@ var (
 )
 
 // RUID: Recently Unique Identifier
-// <-             timestamp            -> <- hardware -> <- sequence ->
-// 00000000 00000000 00000000 00000000 0 - 000 00000000 - 0000 00000000
+// <-               timestamp                   -> <- hardware -> <- sequence ->
+// 00000000 00000000 00000000 00000000 00000000 0 - 000 00000000 - 0000 00000000
 
 type RUID uint64
 
