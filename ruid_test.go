@@ -30,3 +30,39 @@ func TestBytes(t *testing.T) {
 		t.Errorf("FromBytes error: %v %v %v", r1, r2, b)
 	}
 }
+
+func randomRing(ring *Ring, n int) {
+	count := make(map[string]int)
+	for i := 0; i < n; i++ {
+		id := New()
+		node, _ := ring.Get(New())
+		if _, exist := count[node]; !exist {
+			count[node] = 0
+		}
+		count[node]++
+		fmt.Println(uint64(ring.sorted[0]), uint64(ring.sorted[len(ring.sorted)-1]), uint64(id), node, count[node])
+	}
+	min := n
+	max := 0
+	for _, c := range count {
+		if min > c {
+			min = c
+		}
+		if max < c {
+			max = c
+		}
+	}
+	fmt.Println(min, max)
+}
+
+func TestRing(t *testing.T) {
+	var nodes []string
+	weights := make(map[string]int)
+	for i := 0; i < 100; i++ {
+		node := fmt.Sprintf("node_%d", i)
+		nodes = append(nodes, node)
+		weights[node] = i
+	}
+	randomRing(NewRing(nodes...), 10000)
+	randomRing(WeightedRing(weights), 100000)
+}

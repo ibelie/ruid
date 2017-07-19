@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"net"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -86,3 +87,10 @@ func (r RUID) Bytes() []byte {
 func FromBytes(b []byte) RUID {
 	return RUID(binary.BigEndian.Uint64(b))
 }
+
+type RUIDSlice []RUID
+
+func (s RUIDSlice) Len() int           { return len(s) }
+func (s RUIDSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s RUIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s RUIDSlice) Sort()              { sort.Sort(s) }
