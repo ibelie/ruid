@@ -11,29 +11,27 @@ import (
 	"net"
 	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 const (
-	HARDWARE_MASK    = 0x7FF
-	HARDWARE_BITS    = 11
-	SEQUENCE_MASK    = 0xFFF
-	SEQUENCE_BITS    = 12
-	HARDWARE_OFFSET  = SEQUENCE_BITS
-	TIMESTAMP_OFFSET = SEQUENCE_BITS + HARDWARE_OFFSET
+	TIMESTAMP_MASK  = 0x1FFFFFFFFFF
+	TIMESTAMP_BITS  = 41
+	HARDWARE_MASK   = 0x7FF
+	HARDWARE_BITS   = 11
+	HARDWARE_OFFSET = TIMESTAMP_BITS
+	SEQUENCE_OFFSET = HARDWARE_BITS + HARDWARE_OFFSET
 )
 
 var (
 	initial  sync.Once
 	sequence uint64
 	hardware uint64
-	lastTime uint64
 )
 
 // RUID: Recently Unique Identifier
-// <-               timestamp                   -> <- hardware -> <- sequence ->
-// 00000000 00000000 00000000 00000000 00000000 0 - 000 00000000 - 0000 00000000
+// <- sequence -> <- hardware -> <-                 timestamp                 ->
+// 00000000 0000 - 0000 0000000 - 0 00000000 00000000 00000000 00000000 00000000
 
 type RUID uint64
 
@@ -56,12 +54,9 @@ func New() RUID {
 		hardware = uint64(binary.BigEndian.Uint16(bytes)&HARDWARE_MASK) << HARDWARE_OFFSET
 	})
 
-	currTime := uint64(time.Now().UnixNano() / 1e6)
-	if atomic.CompareAndSwapUint64(&lastTime, lastTime, currTime) {
-		atomic.AddUint64(&sequence, 1)
-	}
-
-	return RUID(hardware | (sequence & SEQUENCE_MASK) | (currTime << TIMESTAMP_OFFSET))
+	sequence++
+	timestamp := uint64(time.Now().UnixNano() / 1e6)
+	return RUID(hardware | (sequence << SEQUENCE_OFFSET) | (timestamp & TIMESTAMP_MASK))
 }
 
 func (r RUID) String() string {

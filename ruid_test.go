@@ -6,6 +6,7 @@ package ruid
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 )
 
@@ -35,24 +36,20 @@ func randomRing(ring *Ring, n int) {
 	count := make(map[string]int)
 	for i := 0; i < n; i++ {
 		id := New()
-		node, _ := ring.Get(New())
+		node, _ := ring.Get(id)
 		if _, exist := count[node]; !exist {
 			count[node] = 0
 		}
 		count[node]++
-		fmt.Println(uint64(ring.sorted[0]), uint64(ring.sorted[len(ring.sorted)-1]), uint64(id), node, count[node])
 	}
-	min := n
-	max := 0
+	var sorted []int
 	for _, c := range count {
-		if min > c {
-			min = c
-		}
-		if max < c {
-			max = c
-		}
+		sorted = append(sorted, c)
 	}
-	fmt.Println(min, max)
+	sort.Ints(sorted)
+	for i, c := range sorted {
+		fmt.Printf("%d, %d,\n", i, c)
+	}
 }
 
 func TestRing(t *testing.T) {
@@ -63,6 +60,6 @@ func TestRing(t *testing.T) {
 		nodes = append(nodes, node)
 		weights[node] = i
 	}
-	randomRing(NewRing(nodes...), 10000)
 	randomRing(WeightedRing(weights), 100000)
+	randomRing(NewRing(nodes...), 10000)
 }

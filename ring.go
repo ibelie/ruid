@@ -5,8 +5,8 @@
 package ruid
 
 import (
+	"crypto/md5"
 	"fmt"
-	"hash/fnv"
 	"sort"
 )
 
@@ -75,21 +75,36 @@ func (r *Ring) Get(key RUID) (node string, ok bool) {
 }
 
 func (r *Ring) circle() {
+	virtual := VIRTUAL_NODES
 	total := 0
 	for _, weight := range r.weights {
 		total += weight
+		if virtual < weight {
+			virtual = weight
+		}
 	}
 
 	r.sorted = nil
 	r.ring = make(map[RUID]string)
 	for node, weight := range r.weights {
-		factor := VIRTUAL_NODES * len(r.weights) * weight / total
-		for j := 0; j < int(factor); j++ {
-			hash := fnv.New64()
-			hash.Write([]byte(fmt.Sprintf("%s-%d", node, j)))
-			key := RUID(hash.Sum64())
-			r.ring[key] = node
-			r.sorted = append(r.sorted, key)
+		factor := len(r.weights) * weight * virtual / total
+		if factor < 1 {
+			factor = 1
+		}
+		for i := 0; i < int(factor); i++ {
+			d := md5.Sum([]byte(fmt.Sprintf("%s-%d", node, i)))
+			for j := 0; j < 16; j += 8 {
+				key := (RUID(d[j+7]) << 56) |
+					(RUID(d[j+6]) << 48) |
+					(RUID(d[j+5]) << 40) |
+					(RUID(d[j+4]) << 32) |
+					(RUID(d[j+3]) << 24) |
+					(RUID(d[j+2]) << 16) |
+					(RUID(d[j+1]) << 8) |
+					RUID(d[j])
+				r.ring[key] = node
+				r.sorted = append(r.sorted, key)
+			}
 		}
 	}
 	r.sorted.Sort()
