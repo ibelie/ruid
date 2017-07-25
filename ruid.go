@@ -5,13 +5,15 @@
 package ruid
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/binary"
+	"io"
 	"net"
 	"sort"
 	"sync"
 	"time"
+
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/binary"
 )
 
 const (
@@ -81,6 +83,24 @@ func (r ID) Bytes() []byte {
 
 func FromBytes(b []byte) ID {
 	return ID(binary.LittleEndian.Uint64(b))
+}
+
+func (r ID) ByteSize() (size int) {
+	return 8
+}
+
+func (r ID) Serialize(writer io.Writer) {
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(r))
+	writer.Write(bytes)
+}
+
+func (r *ID) Deserialize(reader io.Reader) (err error) {
+	bytes := make([]byte, 8)
+	if _, err = reader.Read(bytes); err == nil {
+		*r = ID(binary.LittleEndian.Uint64(bytes))
+	}
+	return
 }
 
 type IDSlice []ID
