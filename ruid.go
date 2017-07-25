@@ -39,7 +39,7 @@ func New() RUID {
 	initial.Do(func() {
 		bytes := make([]byte, 2)
 		rand.Read(bytes)
-		sequence = uint64(binary.BigEndian.Uint16(bytes))
+		sequence = uint64(binary.LittleEndian.Uint16(bytes))
 
 		if interfaces, err := net.Interfaces(); err == nil {
 			for _, iface := range interfaces {
@@ -51,7 +51,7 @@ func New() RUID {
 		} else {
 			rand.Read(bytes)
 		}
-		hardware = uint64(binary.BigEndian.Uint16(bytes)&HARDWARE_MASK) << HARDWARE_OFFSET
+		hardware = uint64(binary.LittleEndian.Uint16(bytes)&HARDWARE_MASK) << HARDWARE_OFFSET
 	})
 
 	sequence++
@@ -61,7 +61,7 @@ func New() RUID {
 
 func (r RUID) String() string {
 	bytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, uint64(r))
+	binary.LittleEndian.PutUint64(bytes, uint64(r))
 	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
@@ -69,18 +69,18 @@ func FromString(s string) (RUID, error) {
 	if bytes, err := base64.RawURLEncoding.DecodeString(s); err != nil {
 		return 0, err
 	} else {
-		return RUID(binary.BigEndian.Uint64(bytes)), nil
+		return RUID(binary.LittleEndian.Uint64(bytes)), nil
 	}
 }
 
 func (r RUID) Bytes() []byte {
 	bytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, uint64(r))
+	binary.LittleEndian.PutUint64(bytes, uint64(r))
 	return bytes
 }
 
 func FromBytes(b []byte) RUID {
-	return RUID(binary.BigEndian.Uint64(b))
+	return RUID(binary.LittleEndian.Uint64(b))
 }
 
 type RUIDSlice []RUID
