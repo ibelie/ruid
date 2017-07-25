@@ -33,9 +33,9 @@ var (
 // <- sequence -> <- hardware -> <-                 timestamp                 ->
 // 00000000 0000 - 0000 0000000 - 0 00000000 00000000 00000000 00000000 00000000
 
-type RUID uint64
+type ID uint64
 
-func New() RUID {
+func New() ID {
 	initial.Do(func() {
 		bytes := make([]byte, 2)
 		rand.Read(bytes)
@@ -56,36 +56,36 @@ func New() RUID {
 
 	sequence++
 	timestamp := uint64(time.Now().UnixNano() / 1e6)
-	return RUID(hardware | (sequence << SEQUENCE_OFFSET) | (timestamp & TIMESTAMP_MASK))
+	return ID(hardware | (sequence << SEQUENCE_OFFSET) | (timestamp & TIMESTAMP_MASK))
 }
 
-func (r RUID) String() string {
+func (r ID) String() string {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(r))
 	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
-func FromString(s string) (RUID, error) {
+func FromString(s string) (ID, error) {
 	if bytes, err := base64.RawURLEncoding.DecodeString(s); err != nil {
 		return 0, err
 	} else {
-		return RUID(binary.LittleEndian.Uint64(bytes)), nil
+		return ID(binary.LittleEndian.Uint64(bytes)), nil
 	}
 }
 
-func (r RUID) Bytes() []byte {
+func (r ID) Bytes() []byte {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(r))
 	return bytes
 }
 
-func FromBytes(b []byte) RUID {
-	return RUID(binary.LittleEndian.Uint64(b))
+func FromBytes(b []byte) ID {
+	return ID(binary.LittleEndian.Uint64(b))
 }
 
-type RUIDSlice []RUID
+type IDSlice []ID
 
-func (s RUIDSlice) Len() int           { return len(s) }
-func (s RUIDSlice) Less(i, j int) bool { return s[i] < s[j] }
-func (s RUIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s RUIDSlice) Sort()              { sort.Sort(s) }
+func (s IDSlice) Len() int           { return len(s) }
+func (s IDSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s IDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s IDSlice) Sort()              { sort.Sort(s) }
