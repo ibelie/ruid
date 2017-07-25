@@ -37,6 +37,8 @@ var (
 
 type ID uint64
 
+const ZERO ID = 0
+
 func New() ID {
 	initial.Do(func() {
 		bytes := make([]byte, 2)
