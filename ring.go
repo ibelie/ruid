@@ -16,13 +16,14 @@ const (
 )
 
 type Ring struct {
+	ident   Ident
 	sorted  IDSlice
 	weights map[string]int
 	ring    map[ID]string
 }
 
-func NewRing(nodes ...string) *Ring {
-	ring := &Ring{weights: make(map[string]int)}
+func NewRing(ident Ident, nodes ...string) *Ring {
+	ring := &Ring{ident: ident, weights: make(map[string]int)}
 	for _, node := range nodes {
 		ring.weights[node] = DEFAULT_WEIGHT
 	}
@@ -30,8 +31,8 @@ func NewRing(nodes ...string) *Ring {
 	return ring
 }
 
-func WeightedRing(weights map[string]int) *Ring {
-	ring := &Ring{weights: weights}
+func WeightedRing(ident Ident, weights map[string]int) *Ring {
+	ring := &Ring{ident: ident, weights: weights}
 	ring.circle()
 	return ring
 }
@@ -67,7 +68,8 @@ func (r *Ring) Get(key ID) (node string, ok bool) {
 	if len(r.ring) <= 0 {
 		return "", false
 	}
-	pos := sort.Search(len(r.sorted), func(i int) bool { return r.sorted[i] >= key })
+	hash := key.Hash()
+	pos := sort.Search(len(r.sorted), func(i int) bool { return r.sorted[i].Ge(hash) })
 	if pos == len(r.sorted) {
 		pos = 0
 	}
@@ -92,16 +94,8 @@ func (r *Ring) circle() {
 			factor = 1
 		}
 		for i := 0; i < int(factor); i++ {
-			d := md5.Sum([]byte(fmt.Sprintf("%s-%d", node, i)))
-			for j := 0; j < 16; j += 8 {
-				key := (ID(d[j+7]) << 56) |
-					(ID(d[j+6]) << 48) |
-					(ID(d[j+5]) << 40) |
-					(ID(d[j+4]) << 32) |
-					(ID(d[j+3]) << 24) |
-					(ID(d[j+2]) << 16) |
-					(ID(d[j+1]) << 8) |
-					ID(d[j])
+			bytes := md5.Sum([]byte(fmt.Sprintf("%s-%d", node, i)))
+			for _, key := range r.ident.GetIDs(bytes[:]) {
 				r.ring[key] = node
 				r.sorted = append(r.sorted, key)
 			}

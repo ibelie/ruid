@@ -5,7 +5,6 @@
 package ruid
 
 import (
-	"io"
 	"net"
 	"sort"
 	"sync"
@@ -14,7 +13,23 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+	"github.com/ibelie/tygo"
 )
+
+type ID interface {
+	Lt(ID) bool
+	Ge(ID) bool
+	Hash() ID
+	String() string
+	ByteSize() int
+	Serialize(*tygo.ProtoBuf)
+}
+
+type Ident interface {
+	New() ID
+	Deserialize(*tygo.ProtoBuf) (ID, error)
+	GetIDs([]byte) []ID
+}
 
 const (
 	TIMESTAMP_MASK  = 0x1FFFFFFFFFF
@@ -35,11 +50,11 @@ var (
 // <- sequence -> <- hardware -> <-                 timestamp                 ->
 // 00000000 0000 - 0000 0000000 - 0 00000000 00000000 00000000 00000000 00000000
 
-type ID uint64
+type RUID uint64
 
-const ZERO ID = 0
+const ZERO RUID = 0
 
-func New() ID {
+func New() RUID {
 	initial.Do(func() {
 		bytes := make([]byte, 2)
 		rand.Read(bytes)
@@ -60,47 +75,76 @@ func New() ID {
 
 	sequence++
 	timestamp := uint64(time.Now().UnixNano() / 1e6)
-	return ID(hardware | (sequence << SEQUENCE_OFFSET) | (timestamp & TIMESTAMP_MASK))
+	return RUID(hardware | (sequence << SEQUENCE_OFFSET) | (timestamp & TIMESTAMP_MASK))
 }
 
-func (r ID) String() string {
+func (r RUID) String() string {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(r))
 	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
-func FromString(s string) (ID, error) {
+func FromString(s string) (RUID, error) {
 	if bytes, err := base64.RawURLEncoding.DecodeString(s); err != nil {
 		return 0, err
 	} else {
-		return ID(binary.LittleEndian.Uint64(bytes)), nil
+		return RUID(binary.LittleEndian.Uint64(bytes)), nil
 	}
 }
 
-func (r ID) Bytes() []byte {
+func (r RUID) Bytes() []byte {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(r))
 	return bytes
 }
 
-func FromBytes(b []byte) ID {
-	return ID(binary.LittleEndian.Uint64(b))
+func FromBytes(b []byte) RUID {
+	return RUID(binary.LittleEndian.Uint64(b))
 }
 
-func (r ID) ByteSize() (size int) {
+func (r RUID) Hash() ID {
+	return r
+}
+
+func (r RUID) Lt(o ID) bool {
+	return r < o.(RUID)
+}
+
+func (r RUID) Ge(o ID) bool {
+	return r >= o.(RUID)
+}
+
+func (r RUID) ByteSize() (size int) {
 	return 8
 }
 
-func (r ID) Serialize(writer io.Writer) {
-	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, uint64(r))
-	writer.Write(bytes)
+func (r RUID) Serialize(output *tygo.ProtoBuf) {
+	output.WriteFixed64(uint64(r))
 }
 
-func (r *ID) Deserialize(reader io.Reader) (err error) {
-	bytes := make([]byte, 8)
-	if _, err = reader.Read(bytes); err == nil {
-		*r = ID(binary.LittleEndian.Uint64(bytes))
+func (r *RUID) Deserialize(input *tygo.ProtoBuf) (err error) {
+	x, err := input.ReadFixed64()
+	*r = RUID(x)
+	return
+}
+
+type RUIdentity int
+
+var RUIdent RUIdentity = 0
+
+func (_ RUIdentity) New() ID {
+	return New()
+}
+
+func (_ RUIdentity) Deserialize(input *tygo.ProtoBuf) (r ID, err error) {
+	x, err := input.ReadFixed64()
+	r = RUID(x)
+	return
+}
+
+func (_ RUIdentity) GetIDs(bytes []byte) (ids []ID) {
+	for i, n := 0, len(bytes)-8; i <= n; i += 8 {
+		ids = append(ids, RUID(binary.LittleEndian.Uint64(bytes[i:])))
 	}
 	return
 }
@@ -108,6 +152,6 @@ func (r *ID) Deserialize(reader io.Reader) (err error) {
 type IDSlice []ID
 
 func (s IDSlice) Len() int           { return len(s) }
-func (s IDSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s IDSlice) Less(i, j int) bool { return s[i].Lt(s[j]) }
 func (s IDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s IDSlice) Sort()              { sort.Sort(s) }

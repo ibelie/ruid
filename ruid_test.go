@@ -60,6 +60,6 @@ func TestRing(t *testing.T) {
 		nodes = append(nodes, node)
 		weights[node] = i
 	}
-	randomRing(WeightedRing(weights), 100000)
-	randomRing(NewRing(nodes...), 10000)
+	randomRing(WeightedRing(RUIdent, weights), 100000)
+	randomRing(NewRing(RUIdent, nodes...), 10000)
 }
