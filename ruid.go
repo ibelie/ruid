@@ -21,12 +21,14 @@ type ID interface {
 	Ge(ID) bool
 	Hash() ID
 	String() string
+	Nonzero() bool
 	ByteSize() int
 	Serialize(*tygo.ProtoBuf)
 }
 
 type Ident interface {
 	New() ID
+	Zero() ID
 	Deserialize(*tygo.ProtoBuf) (ID, error)
 	GetIDs([]byte) []ID
 }
@@ -114,6 +116,10 @@ func (r RUID) Ge(o ID) bool {
 	return r >= o.(RUID)
 }
 
+func (r RUID) Nonzero() bool {
+	return r != ZERO
+}
+
 func (r RUID) ByteSize() (size int) {
 	return 8
 }
@@ -134,6 +140,10 @@ var RUIdent RUIdentity = 0
 
 func (_ RUIdentity) New() ID {
 	return New()
+}
+
+func (_ RUIdentity) Zero() ID {
+	return ZERO
 }
 
 func (_ RUIdentity) Deserialize(input *tygo.ProtoBuf) (r ID, err error) {
