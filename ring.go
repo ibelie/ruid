@@ -7,6 +7,7 @@ package ruid
 import (
 	"crypto/md5"
 	"fmt"
+	"log"
 	"sort"
 )
 
@@ -76,6 +77,14 @@ func (r *Ring) Get(key ID) (node string, ok bool) {
 	return r.ring[r.sorted[pos]], true
 }
 
+func (r *Ring) Key(node string) ID {
+	bytes := md5.Sum([]byte(node))
+	for _, key := range r.ident.GetIDs(bytes[:]) {
+		return key
+	}
+	return nil
+}
+
 func (r *Ring) circle() {
 	virtual := VIRTUAL_NODES
 	total := 0
@@ -88,15 +97,22 @@ func (r *Ring) circle() {
 
 	r.ring = make(map[ID]string)
 	for node, weight := range r.weights {
-		factor := len(r.weights) * weight * virtual / total
-		if factor < 1 {
-			factor = 1
-		}
-		for i := 0; i < int(factor); i++ {
+		for i := 0; i < int(len(r.weights)*weight*virtual/total); i++ {
 			bytes := md5.Sum([]byte(fmt.Sprintf("%s-%d", node, i)))
 			for _, key := range r.ident.GetIDs(bytes[:]) {
 				r.ring[key] = node
 			}
+		}
+	}
+
+	conflict := make(map[ID]string)
+	for node, _ := range r.weights {
+		hash := r.Key(node).Hash()
+		if n, ok := conflict[hash]; ok {
+			log.Fatalf("[RUID] Ring nodes conflict: %q %q", n, node)
+		} else {
+			conflict[hash] = node
+			r.ring[hash] = node
 		}
 	}
 
