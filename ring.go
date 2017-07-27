@@ -23,6 +23,14 @@ type Ring struct {
 	ring    map[ID]string
 }
 
+func RingKey(ident Ident, node string) ID {
+	bytes := md5.Sum([]byte(node))
+	for _, key := range ident.GetIDs(bytes[:]) {
+		return key
+	}
+	return nil
+}
+
 func NewRing(ident Ident, nodes ...string) *Ring {
 	ring := &Ring{ident: ident, weights: make(map[string]int)}
 	for _, node := range nodes {
@@ -77,14 +85,6 @@ func (r *Ring) Get(key ID) (node string, ok bool) {
 	return r.ring[r.sorted[pos]], true
 }
 
-func (r *Ring) Key(node string) ID {
-	bytes := md5.Sum([]byte(node))
-	for _, key := range r.ident.GetIDs(bytes[:]) {
-		return key
-	}
-	return nil
-}
-
 func (r *Ring) circle() {
 	virtual := VIRTUAL_NODES
 	total := 0
@@ -107,7 +107,7 @@ func (r *Ring) circle() {
 
 	conflict := make(map[ID]string)
 	for node, _ := range r.weights {
-		hash := r.Key(node).Hash()
+		hash := RingKey(r.ident, node).Hash()
 		if n, ok := conflict[hash]; ok {
 			log.Fatalf("[RUID] Ring nodes conflict: %q %q", n, node)
 		} else {
