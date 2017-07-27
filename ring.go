@@ -86,7 +86,6 @@ func (r *Ring) circle() {
 		}
 	}
 
-	r.sorted = nil
 	r.ring = make(map[ID]string)
 	for node, weight := range r.weights {
 		factor := len(r.weights) * weight * virtual / total
@@ -97,9 +96,13 @@ func (r *Ring) circle() {
 			bytes := md5.Sum([]byte(fmt.Sprintf("%s-%d", node, i)))
 			for _, key := range r.ident.GetIDs(bytes[:]) {
 				r.ring[key] = node
-				r.sorted = append(r.sorted, key)
 			}
 		}
+	}
+
+	r.sorted = nil
+	for key, _ := range r.ring {
+		r.sorted = append(r.sorted, key)
 	}
 	r.sorted.Sort()
 }
