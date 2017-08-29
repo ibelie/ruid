@@ -56,6 +56,10 @@ type RUID uint64
 
 const ZERO RUID = 0
 
+const EncodeRUID = "-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
+
+var RUIDEncoding = base64.NewEncoding(EncodeRUID).WithPadding(base64.NoPadding)
+
 func New() RUID {
 	initial.Do(func() {
 		bytes := make([]byte, 2)
@@ -83,11 +87,11 @@ func New() RUID {
 func (r RUID) String() string {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, uint64(r))
-	return base64.RawURLEncoding.EncodeToString(bytes)
+	return RUIDEncoding.EncodeToString(bytes)
 }
 
 func FromString(s string) (RUID, error) {
-	if bytes, err := base64.RawURLEncoding.DecodeString(s); err != nil {
+	if bytes, err := RUIDEncoding.DecodeString(s); err != nil {
 		return 0, err
 	} else {
 		return RUID(binary.LittleEndian.Uint64(bytes)), nil
