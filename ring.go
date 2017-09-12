@@ -18,7 +18,7 @@ const (
 
 type Ring struct {
 	ident   Ident
-	sorted  IDSlice
+	sorted  []ID
 	weights map[string]int
 	ring    map[ID]string
 }
@@ -120,5 +120,7 @@ func (r *Ring) circle() {
 	for key, _ := range r.ring {
 		r.sorted = append(r.sorted, key)
 	}
-	r.sorted.Sort()
+	sort.Slice(r.sorted, func(i int, j int) bool {
+		return r.sorted[i].Lt(r.sorted[j])
+	})
 }

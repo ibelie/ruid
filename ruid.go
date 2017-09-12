@@ -6,13 +6,13 @@ package ruid
 
 import (
 	"net"
-	"sort"
 	"sync"
 	"time"
 
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+
 	"github.com/ibelie/tygo"
 )
 
@@ -162,10 +162,3 @@ func (_ RUIdentity) GetIDs(bytes []byte) (ids []ID) {
 	}
 	return
 }
-
-type IDSlice []ID
-
-func (s IDSlice) Len() int           { return len(s) }
-func (s IDSlice) Less(i, j int) bool { return s[i].Lt(s[j]) }
-func (s IDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s IDSlice) Sort()              { sort.Sort(s) }
